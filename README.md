@@ -7,8 +7,12 @@ I reccomend using replit to clone the repo and run the files (afkbot.js and keep
 <pre>node afkbot.js</pre>
 <pre>node keepalive.js</pre>
 
+# Local Installation (git bash)
+<pre>git clone https://github.com/MG2401-star/aternos-afk-bot</pre>
+<pre>cd aternos-afk-bot</pre>pre>
+<pre>npm install</pre>
 
-You can use it locally as well (with git bash)
+To run the bot:
 <pre>node afkbot.js & node keepalive.js</pre>
 
 ## Configure the config file to suit your needs
