@@ -2,17 +2,27 @@ const mineflayer = require('mineflayer');
 const fs = require('fs');
 const config = require('./config.json');
 
+/* ================= ENV HELPER ================= */
+const ENV = (key, fallback) =>
+    process.env[key] !== undefined ? process.env[key] : fallback;
+
 /* ================= LOGGER ================= */
 function log(msg) {
-  const line = `[${new Date().toISOString()}] ${msg}`;
-  console.log(line);
-  fs.appendFileSync('bot.log', line + '\n');
+    const line = `[${new Date().toISOString()}] ${msg}`;
+    console.log(line);
+    fs.appendFileSync('bot.log', line + '\n');
 }
 
 /* ============ GLOBAL CRASH HANDLERS ============ */
-process.on('uncaughtException', (err) => log(`UNCAUGHT EXCEPTION:\n${err.stack || err}`));
-process.on('unhandledRejection', (reason) => log(`UNHANDLED PROMISE REJECTION:\n${reason}`));
-process.on('exit', (code) => log(`Process exited with code ${code}`));
+process.on('uncaughtException', err =>
+    log(`UNCAUGHT EXCEPTION:\n${err.stack || err}`)
+);
+
+process.on('unhandledRejection', reason =>
+    log(`UNHANDLED PROMISE REJECTION:\n${reason}`)
+);
+
+process.on('exit', code => log(`Process exited with code ${code}`));
 process.on('SIGTERM', () => log('Process received SIGTERM'));
 process.on('SIGINT', () => log('Process received SIGINT'));
 
@@ -21,103 +31,102 @@ let bot;
 let reconnectTimeout = null;
 
 function startBot() {
-  log('Starting bot...');
+    log('Starting bot...');
 
-  bot = mineflayer.createBot({
-    host: config.server.host,
-    port: config.server.port,
-    username: config.account.username,
-    password: config.account.password,
-    version: config.server.version || false
-  });
+    bot = mineflayer.createBot({
+        host: ENV('MC_HOST', config.server.host),
+        port: Number(ENV('MC_PORT', config.server.port)),
+        username: ENV('MC_USERNAME', config.account.username),
+        password: ENV('MC_PASSWORD', config.account.password),
+        version: config.server.version || false
+    });
 
-  bot.once('spawn', () => {
-    log('Bot spawned in server');
+    bot.once('spawn', () => {
+        log('Bot spawned in server');
 
-    // AuthMe login after spawn
-    setTimeout(() => {
-      if (bot && bot.chat) {
-        bot.chat(`/login ${config.account.password}`);
-        log('Sent /login command');
+        // AuthMe login after spawn
+        setTimeout(() => {
+            if (bot?.chat) {
+                bot.chat(`/login ${ENV('MC_PASSWORD', config.account.password)}`);
+                log('Sent /login command');
 
-        // Start Anti-AFK after delay
-        setTimeout(startAntiAfk, config.timings.antiAfkStartDelayMs);
-        startChatLoop();
-      }
-    }, config.timings.authMeDelayMs);
-  });
+                // Start Anti-AFK after login
+                setTimeout(startAntiAfk, config.timings.antiAfkStartDelayMs);
+                startChatLoop();
+            }
+        }, config.timings.authMeDelayMs);
+    });
 
-  /* ---------------- EVENTS ---------------- */
+    /* ---------------- EVENTS ---------------- */
 
-  // Reconnection handler
-  bot.on('end', (reason) => {
-    log(`Bot disconnected: ${reason || 'Unknown reason'}`);
-    scheduleReconnect();
-  });
+    bot.on('end', reason => {
+        log(`Bot disconnected: ${reason || 'Unknown reason'}`);
+        scheduleReconnect();
+    });
 
-  bot.on('kicked', (reason) => {
-    log(`Bot kicked by server: ${reason}`);
-    scheduleReconnect();
-  });
+    bot.on('kicked', reason => {
+        log(`Bot kicked by server: ${reason}`);
+        scheduleReconnect();
+    });
 
-  bot.on('error', (err) => {
-    log(`BOT ERROR:\n${err.stack || err}`);
-  });
+    bot.on('error', err => {
+        log(`BOT ERROR:\n${err.stack || err}`);
+    });
 }
 
 /* ================= RECONNECT ================= */
 function scheduleReconnect() {
-  if (reconnectTimeout) return;
+    if (reconnectTimeout) return;
 
-  reconnectTimeout = setTimeout(() => {
-    reconnectTimeout = null;
-    log('Reconnecting...');
-    startBot();
-  }, config.timings.reconnectDelayMs);
+    reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null;
+        log('Reconnecting...');
+        startBot();
+    }, config.timings.reconnectDelayMs);
 }
 
 /* ================= ANTI-AFK ================= */
 function startAntiAfk() {
-  log('Anti-AFK started');
+    log('Anti-AFK started');
 
-  // Jump
-  setInterval(() => {
-    if (!bot || !bot.entity) return;
+    // Jump
+    setInterval(() => {
+        if (!bot?.entity) return;
 
-    try {
-      bot.setControlState('jump', true);
-      setTimeout(() => bot.setControlState('jump', false), 300);
-    } catch (err) {
-      log(`Jump error: ${err.message}`);
-    }
-  }, config.timings.jumpIntervalMs);
+        try {
+            bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 300);
+        } catch (err) {
+            log(`Jump error: ${err.message}`);
+        }
+    }, config.timings.jumpIntervalMs);
 
-  // Look around safely
-  setInterval(() => {
-    if (!bot || !bot.entity) return;
+    // Look around safely
+    setInterval(() => {
+        if (!bot?.entity) return;
 
-    try {
-      const yaw = bot.entity.yaw + (Math.random() - 0.5);
-      const pitch = bot.entity.pitch;
-      bot.look(yaw, pitch, true);
-    } catch (err) {
-      log(`Look error: ${err.message}`);
-    }
-  }, config.timings.lookIntervalMs);
+        try {
+            const yaw = bot.entity.yaw + (Math.random() - 0.5);
+            const pitch = bot.entity.pitch;
+            bot.look(yaw, pitch, true);
+        } catch (err) {
+            log(`Look error: ${err.message}`);
+        }
+    }, config.timings.lookIntervalMs);
 }
 
 /* ================= CHAT LOOP ================= */
 function startChatLoop() {
-  setInterval(() => {
-    if (!bot || !bot.chat) return;
+    setInterval(() => {
+        if (!bot?.chat) return;
 
-    try {
-      bot.chat(config.messages.chatMessage);
-      log('Sent chat message');
-    } catch (err) {
-      log(`Chat error: ${err.message}`);
-    }
-  }, config.timings.chatIntervalMs);
+        try {
+            bot.chat(config.messages.chatMessage);
+            log('Sent chat message');
+        } catch (err) {
+            log(`Chat error: ${err.message}`);
+        }
+    }, config.timings.chatIntervalMs);
 }
 
 /* ================= START BOT ================= */
