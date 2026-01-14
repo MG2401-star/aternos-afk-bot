@@ -47,14 +47,22 @@ function startBot() {
     }, config.timings.authMeDelayMs);
   });
 
-  bot.on('end', () => {
-    log('Bot disconnected');
+  /* ---------------- EVENTS ---------------- */
+
+  // Reconnection handler
+  bot.on('end', (reason) => {
+    log(`Bot disconnected: ${reason || 'Unknown reason'}`);
     scheduleReconnect();
   });
 
-  bot.on('kicked', (reason) => log(`Bot kicked: ${reason}`));
+  bot.on('kicked', (reason) => {
+    log(`Bot kicked by server: ${reason}`);
+    scheduleReconnect();
+  });
 
-  bot.on('error', (err) => log(`Bot error:\n${err.stack || err}`));
+  bot.on('error', (err) => {
+    log(`BOT ERROR:\n${err.stack || err}`);
+  });
 }
 
 /* ================= RECONNECT ================= */
@@ -84,7 +92,7 @@ function startAntiAfk() {
     }
   }, config.timings.jumpIntervalMs);
 
-  // Look around
+  // Look around safely
   setInterval(() => {
     if (!bot || !bot.entity) return;
 
