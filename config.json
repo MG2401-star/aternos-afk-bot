@@ -1,0 +1,25 @@
+{
+  "server": {
+    "host": "PaddaakS2Lifesteal.aternos.me",
+    "port": 16666,
+    "version": false
+  },
+
+  "account": {
+    "username": "Paddaak",
+    "password": "bot@12345"
+  },
+
+  "timings": {
+    "loginDelayMs": 7000,
+    "antiAfkStartDelayMs": 20000,
+    "reconnectDelayMs": 8000,
+    "jumpIntervalMs": 30000,
+    "lookIntervalMs": 15000,
+    "chatIntervalMs": 240000
+  },
+
+  "messages": {
+    "chatMessage": "Anti-AFK works!"
+  }
+}
