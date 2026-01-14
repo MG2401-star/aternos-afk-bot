@@ -21,6 +21,10 @@ You can use it locally as well (with git bash)
 For AuthMe users, command looks like:
 /authme reg <your_bot_username> <password_from_config>
 
+## Dependencies:
+- Nodejs
+- npm
+- mineflayer 
 
 Please note:
-Usable only on cracked servers, and this can get you banned on aternos.
+Usable only on cracked servers, this can get you banned on aternos.
