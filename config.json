@@ -11,8 +11,8 @@
   },
 
   "timings": {
-    "loginDelayMs": 10000,
-    "authMeDelayMs": 3000,
+    "loginDelayMs": 7000,
+    "authMeDelayMs": 5000,
     "antiAfkStartDelayMs": 20000,
     "reconnectDelayMs": 10000,
     "antiAfkIntervalMs": 30000,
@@ -20,7 +20,7 @@
   },
 
   "messages": {
-    "chatMessage": "Anti-AFK running"
+    "chatMessage": "still here"
   },
 
   "keepalive": {

@@ -30,7 +30,19 @@ function createBot() {
         isSpawned = true;
         log('Bot spawned');
 
-        setTimeout(startAntiAfk, config.timings.antiAfkStartDelayMs);
+        // ⏳ AuthMe login AFTER spawn
+        setTimeout(() => {
+            if (!bot) return;
+
+            bot.chat(`/login ${config.account.password}`);
+            log('AuthMe login command sent');
+
+            // ⏳ Start Anti-AFK ONLY AFTER login is sent
+            setTimeout(() => {
+                startAntiAfk();
+            }, config.timings.antiAfkStartDelayMs);
+
+        }, config.timings.authMeDelayMs);
     });
 
     bot.on('end', (reason) => {
@@ -39,12 +51,12 @@ function createBot() {
         scheduleReconnect();
     });
 
-    bot.on('error', (err) => {
-        log(`Error: ${err.message}`);
-    });
-
     bot.on('kicked', (reason) => {
         log(`Kicked: ${reason}`);
+    });
+
+    bot.on('error', (err) => {
+        log(`Error: ${err.message}`);
     });
 }
 
@@ -57,12 +69,15 @@ function startAntiAfk() {
         if (!bot || !isSpawned || !bot.entity) return;
 
         try {
+            // Jump
             bot.setControlState('jump', true);
             setTimeout(() => bot.setControlState('jump', false), 300);
 
+            // Small look movement (safe)
             const yaw = bot.entity.yaw + (Math.random() - 0.5);
             bot.look(yaw, bot.entity.pitch, true);
 
+            // Optional chat
             bot.chat(config.messages.chatMessage);
         } catch (e) {
             log(`Anti-AFK skipped: ${e.message}`);
@@ -94,5 +109,5 @@ function scheduleReconnect() {
     }, config.timings.reconnectDelayMs);
 }
 
-/* START */
+/* 🚀 START BOT */
 setTimeout(createBot, config.timings.loginDelayMs);
