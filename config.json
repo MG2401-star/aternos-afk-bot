@@ -1,12 +1,12 @@
 {
   "server": {
-    "host": "PaddaakS2Lifesteal.aternos.me",
+    "host": "server_name",
     "port": 16666,
     "version": false
   },
 
   "account": {
-    "username": "Paddaak",
+    "username": "bot",
     "password": "bot@12345"
   },
 
