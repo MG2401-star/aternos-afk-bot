@@ -1,4 +1,3 @@
-require('dotenv').config();
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -16,7 +15,9 @@ function log(msg) {
 }
 
 /* ================= WEB SERVER ================= */
-const PORT = ENV('KEEPALIVE_PORT', config.keepalive.port || 3000);
+const PORT = Number(
+  ENV('KEEPALIVE_PORT', config.keepalive?.port || 3000)
+);
 
 http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -28,11 +29,11 @@ http.createServer((req, res) => {
 /* ================= SELF PING ================= */
 const SELF_PING_URL = ENV(
   'SELF_PING_URL',
-  config.keepalive.selfPingUrl
+  config.keepalive?.selfPingUrl
 );
 
 const PING_INTERVAL =
-  config.timings.selfPingIntervalMs || 180000;
+  config.timings?.selfPingIntervalMs || 180000; // default 3 min
 
 if (SELF_PING_URL) {
   setInterval(() => {
