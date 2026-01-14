@@ -16,14 +16,14 @@
     "antiAfkStartDelayMs": 20000,
     "reconnectDelayMs": 10000,
 
-    "antiAfkIntervalMs": 30000,
+    "jumpIntervalMs": 30000,
+    "lookIntervalMs": 15000,
     "chatIntervalMs": 300000,
-
     "selfPingIntervalMs": 180000
   },
 
   "messages": {
-    "chatMessage": "still here"
+    "chatMessage": "Anti-AFK running!"
   },
 
   "keepalive": {
