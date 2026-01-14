@@ -4,7 +4,9 @@ const config = JSON.parse(fs.readFileSync('./config.json'));
 
 let bot = null;
 let isSpawned = false;
+
 let antiAfkInterval = null;
+let chatInterval = null;
 let reconnectTimeout = null;
 
 function log(msg) {
@@ -37,9 +39,10 @@ function createBot() {
             bot.chat(`/login ${config.account.password}`);
             log('AuthMe login command sent');
 
-            // ⏳ Start Anti-AFK ONLY AFTER login is sent
+            // ⏳ Start Anti-AFK AFTER login
             setTimeout(() => {
                 startAntiAfk();
+                startChat();
             }, config.timings.antiAfkStartDelayMs);
 
         }, config.timings.authMeDelayMs);
@@ -73,28 +76,40 @@ function startAntiAfk() {
             bot.setControlState('jump', true);
             setTimeout(() => bot.setControlState('jump', false), 300);
 
-            // Small look movement (safe)
+            // Small look movement (yaw-safe)
             const yaw = bot.entity.yaw + (Math.random() - 0.5);
             bot.look(yaw, bot.entity.pitch, true);
 
-            // Optional chat
-            bot.chat(config.messages.chatMessage);
         } catch (e) {
             log(`Anti-AFK skipped: ${e.message}`);
         }
     }, config.timings.antiAfkIntervalMs);
 }
 
-function stopAntiAfk() {
+function startChat() {
+    if (chatInterval) return;
+
+    log('Chat timer started');
+
+    chatInterval = setInterval(() => {
+        if (!bot || !isSpawned) return;
+        bot.chat(config.messages.chatMessage);
+    }, config.timings.chatIntervalMs);
+}
+
+function stopIntervals() {
     if (antiAfkInterval) {
         clearInterval(antiAfkInterval);
         antiAfkInterval = null;
-        log('Anti-AFK stopped');
+    }
+    if (chatInterval) {
+        clearInterval(chatInterval);
+        chatInterval = null;
     }
 }
 
 function cleanupBot() {
-    stopAntiAfk();
+    stopIntervals();
     isSpawned = false;
     bot = null;
 }
