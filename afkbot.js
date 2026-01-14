@@ -1,6 +1,9 @@
 const mineflayer = require('mineflayer')
 const fs = require('fs')
 
+// keep Replit awake
+require('./keepalive')
+
 /* ================= LOAD CONFIG ================= */
 
 const config = JSON.parse(fs.readFileSync('./config.json', 'utf8'))
@@ -14,12 +17,14 @@ if (!BOT_USERNAME) {
 
 console.log('Starting AFK bot as:', BOT_USERNAME)
 
-/* ================= BOT CREATION ================= */
+/* ================= GLOBALS ================= */
 
-let bot
+let bot = null
 let reconnectTimeout = null
 let antiAfkInterval = null
 let chatInterval = null
+
+/* ================= CREATE BOT ================= */
 
 function createBot() {
   bot = mineflayer.createBot({
@@ -29,58 +34,66 @@ function createBot() {
     version: config.server.version || false
   })
 
-  /* ================= EVENTS ================= */
-
   bot.once('spawn', () => {
     console.log('Bot joined server')
 
     // AuthMe login
     if (BOT_PASSWORD) {
       setTimeout(() => {
-        bot.chat(`/login ${BOT_PASSWORD}`)
-        console.log('Sent /login')
+        if (bot) {
+          bot.chat(`/login ${BOT_PASSWORD}`)
+          console.log('Sent /login')
+        }
       }, config.timings.loginDelayMs)
     }
 
-    // Start Anti-AFK AFTER spawn
+    // start anti-afk after delay
     setTimeout(startAntiAfk, config.timings.antiAfkStartDelayMs)
   })
 
-  bot.on('end', handleDisconnect)
-  bot.on('kicked', handleDisconnect)
-
   bot.on('error', (err) => {
     if (err.code === 'ECONNRESET') {
-      console.log('Connection reset. Reconnecting...')
-    } else {
-      console.log('Bot error:', err.message)
+      console.log('[WARN] ECONNRESET – connection closed by server')
+      return
     }
+    console.log('[ERROR]', err.message)
+  })
+
+  bot.on('kicked', (reason) => {
+    console.log('[KICKED]', reason)
+    safeReconnect()
+  })
+
+  bot.on('end', () => {
+    console.log('[END] Disconnected')
+    safeReconnect()
   })
 }
 
-/* ================= ANTI-AFK ================= */
+/* ================= ANTI AFK ================= */
 
 function startAntiAfk() {
   stopAntiAfk()
-
   console.log('Anti-AFK started')
 
   antiAfkInterval = setInterval(() => {
     if (!bot || !bot.entity) return
 
-    // Jump
+    // jump once
     bot.setControlState('jump', true)
-    setTimeout(() => bot.setControlState('jump', false), 500)
+    setTimeout(() => {
+      if (bot) bot.setControlState('jump', false)
+    }, 500)
 
-    // Look safely (NO physics crash)
+    // safe look (no crash)
     try {
       const yaw = Math.random() * Math.PI * 2
-      const pitch = (Math.random() - 0.5) * 0.5
+      const pitch = (Math.random() - 0.5) * 0.4
       bot.look(yaw, pitch, true)
     } catch {}
   }, config.timings.jumpIntervalMs)
 
-  // Optional chat ping
+  // optional chat keep-alive
   if (config.messages?.chatMessage) {
     chatInterval = setInterval(() => {
       if (bot && bot.entity) {
@@ -91,23 +104,28 @@ function startAntiAfk() {
 }
 
 function stopAntiAfk() {
-  if (antiAfkInterval) clearInterval(antiAfkInterval)
-  if (chatInterval) clearInterval(chatInterval)
+  if (antiAfkInterval) {
+    clearInterval(antiAfkInterval)
+    antiAfkInterval = null
+  }
+  if (chatInterval) {
+    clearInterval(chatInterval)
+    chatInterval = null
+  }
 }
 
 /* ================= RECONNECT ================= */
 
-function handleDisconnect() {
-  console.log('Disconnected. Reconnecting...')
+function safeReconnect() {
+  if (reconnectTimeout) return
 
   stopAntiAfk()
 
-  if (reconnectTimeout) return
-
   reconnectTimeout = setTimeout(() => {
     reconnectTimeout = null
+    console.log('Reconnecting...')
     createBot()
-  }, config.timings.reconnectDelayMs)
+  }, Math.max(config.timings.reconnectDelayMs, 15000))
 }
 
 /* ================= START ================= */
