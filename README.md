@@ -25,6 +25,10 @@ To run the bot:
 For AuthMe users, command looks like:
 /authme reg <your_bot_username> <password_from_config>
 
+## Anti AFK
+
+Bot randomly jumps, looks around and chats to throw-off AFK kick systems
+
 ## Dependencies:
 - Nodejs
 - npm
