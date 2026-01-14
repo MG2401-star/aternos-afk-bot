@@ -9,7 +9,7 @@ I reccomend using replit to clone the repo and run the files (afkbot.js and keep
 
 # Local Installation (git bash)
 <pre>git clone https://github.com/MG2401-star/aternos-afk-bot</pre>
-<pre>cd aternos-afk-bot</pre>pre>
+<pre>cd aternos-afk-bot</pre>
 <pre>npm install</pre>
 
 To run the bot:
