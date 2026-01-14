@@ -11,15 +11,20 @@
   },
 
   "timings": {
-    "loginDelayMs": 7000,
+    "loginDelayMs": 10000,
+    "authMeDelayMs": 3000,
     "antiAfkStartDelayMs": 20000,
-    "reconnectDelayMs": 8000,
-    "jumpIntervalMs": 30000,
-    "lookIntervalMs": 15000,
-    "chatIntervalMs": 240000
+    "reconnectDelayMs": 10000,
+    "antiAfkIntervalMs": 30000,
+    "selfPingIntervalMs": 180000
   },
 
   "messages": {
-    "chatMessage": "Anti-AFK works!"
+    "chatMessage": "Anti-AFK running"
+  },
+
+  "keepalive": {
+    "port": 3000,
+    "selfPingUrl": "https://YOUR_REPLIT_URL_HERE"
   }
 }

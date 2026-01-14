@@ -1,92 +1,98 @@
 const mineflayer = require('mineflayer');
 const fs = require('fs');
-const fetch = require('node-fetch'); // npm i node-fetch
-const config = require('./config.json');
+const config = JSON.parse(fs.readFileSync('./config.json'));
 
-// Utility to log messages with timestamp
+let bot = null;
+let isSpawned = false;
+let antiAfkInterval = null;
+let reconnectTimeout = null;
+
 function log(msg) {
-    const timestamp = new Date().toISOString();
-    const line = `[${timestamp}] ${msg}`;
+    const line = `[${new Date().toISOString()}] ${msg}`;
     console.log(line);
     fs.appendFileSync('bot.log', line + '\n');
 }
 
-// Start bot function
-function startBot() {
-    let bot;
-    try {
-        bot = mineflayer.createBot({
-            host: config.server.host,
-            port: config.server.port,
-            username: config.account.username,
-            password: config.account.password,
-            version: config.server.version || false
-        });
+function createBot() {
+    if (bot) return;
 
-        log('Bot joined server');
+    log('Creating bot...');
 
-        // Anti-AFK: jump and look around
-        setTimeout(() => {
-            setInterval(() => {
-                try {
-                    bot.setControlState('jump', true);
-                    setTimeout(() => bot.setControlState('jump', false), 100);
-                    bot.look(Math.random() * 2 * Math.PI, 0, true);
-                } catch (err) {
-                    log('Anti-AFK error: ' + err.message);
-                }
-            }, config.timings.jumpIntervalMs);
-        }, config.timings.antiAfkStartDelayMs);
+    bot = mineflayer.createBot({
+        host: config.server.host,
+        port: config.server.port,
+        username: config.account.username,
+        password: config.account.password,
+        version: config.server.version
+    });
 
-        // Chat periodically
-        setInterval(() => {
-            try {
-                bot.chat(config.messages.chatMessage);
-            } catch (err) {
-                log('Chat error: ' + err.message);
-            }
-        }, config.timings.chatIntervalMs);
+    bot.once('spawn', () => {
+        isSpawned = true;
+        log('Bot spawned');
 
-        // Reconnect handlers
-        bot.on('kicked', (reason) => {
-            log('Kicked: ' + reason);
-            reconnectBot();
-        });
+        setTimeout(startAntiAfk, config.timings.antiAfkStartDelayMs);
+    });
 
-        bot.on('end', (reason) => {
-            log('Disconnected: ' + reason);
-            reconnectBot();
-        });
+    bot.on('end', (reason) => {
+        log(`Disconnected: ${reason}`);
+        cleanupBot();
+        scheduleReconnect();
+    });
 
-        bot.on('error', (err) => {
-            log('Bot error: ' + err.message);
-            reconnectBot();
-        });
+    bot.on('error', (err) => {
+        log(`Error: ${err.message}`);
+    });
 
-    } catch (err) {
-        log('Failed to start bot: ' + err.message);
-        reconnectBot();
-    }
+    bot.on('kicked', (reason) => {
+        log(`Kicked: ${reason}`);
+    });
+}
 
-    function reconnectBot() {
-        setTimeout(() => {
-            log('Reconnecting bot...');
-            startBot();
-        }, config.timings.reconnectDelayMs);
+function startAntiAfk() {
+    if (antiAfkInterval || !isSpawned || !bot?.entity) return;
+
+    log('Anti-AFK started');
+
+    antiAfkInterval = setInterval(() => {
+        if (!bot || !isSpawned || !bot.entity) return;
+
+        try {
+            bot.setControlState('jump', true);
+            setTimeout(() => bot.setControlState('jump', false), 300);
+
+            const yaw = bot.entity.yaw + (Math.random() - 0.5);
+            bot.look(yaw, bot.entity.pitch, true);
+
+            bot.chat(config.messages.chatMessage);
+        } catch (e) {
+            log(`Anti-AFK skipped: ${e.message}`);
+        }
+    }, config.timings.antiAfkIntervalMs);
+}
+
+function stopAntiAfk() {
+    if (antiAfkInterval) {
+        clearInterval(antiAfkInterval);
+        antiAfkInterval = null;
+        log('Anti-AFK stopped');
     }
 }
 
-// Start the bot
-startBot();
+function cleanupBot() {
+    stopAntiAfk();
+    isSpawned = false;
+    bot = null;
+}
 
-// Self-ping to keep Replit awake
-const url = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/`;
+function scheduleReconnect() {
+    if (reconnectTimeout) return;
 
-setInterval(async () => {
-    try {
-        await fetch(url);
-        log('Self-ping sent');
-    } catch (err) {
-        log('Self-ping failed: ' + err.message);
-    }
-}, 180000); // every 3 minutes
+    log('Reconnecting soon...');
+    reconnectTimeout = setTimeout(() => {
+        reconnectTimeout = null;
+        createBot();
+    }, config.timings.reconnectDelayMs);
+}
+
+/* START */
+setTimeout(createBot, config.timings.loginDelayMs);
